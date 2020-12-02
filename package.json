@@ -1,0 +1,28 @@
+{
+  "name": "client-mp4-test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "license": "MIT",
+  "author": {
+    "name": "Matt DesLauriers",
+    "email": "dave.des@gmail.com",
+    "url": "https://github.com/mattdesl"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "budo": "^11.6.4"
+  },
+  "scripts": {
+    "start": "npx budo --no-live"
+  },
+  "keywords": [],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mattdesl/client-mp4-test.git"
+  },
+  "homepage": "https://github.com/mattdesl/client-mp4-test",
+  "bugs": {
+    "url": "https://github.com/mattdesl/client-mp4-test/issues"
+  }
+}
