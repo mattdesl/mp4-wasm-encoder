@@ -10,7 +10,7 @@ Fast client-side MP4 encoding demo based on [Trevor Sundberg's](https://github.c
 - Uses WASM SIMD if enabled (Chrome only; first enable `#enable-webassembly-simd` in about:flags)
 - Uses OffscreenCanvas to speed up rendering in a web worker (Chrome only)
 
-A 5 second 1920x1080 60FPS MP4 takes about 10 seconds to encode with Chrome and SIMD enabled.
+A 5 second 1920x1080 60FPS MP4 takes about 7 seconds to encode with Chrome and SIMD enabled.
 
 ## How is this fast? (for a browser)
 
