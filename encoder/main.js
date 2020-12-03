@@ -85,6 +85,40 @@ async function createWorker(sketch) {
   // return new Worker("./encoder/renderer.js");
 }
 
+function createEncoder (width, height, fps) {
+  const chunks = [];
+  const init = {
+    output: chunk => {
+      chunks.push(chunk);
+    },
+    error: (e) => {
+      console.log(e.message);
+    }
+  };
+  
+
+  const config = {
+    codec: 'vp8',
+    width: width,
+    height: height,
+    bitrate: 8_000_000, // 8 Mbps
+    framerate: fps,
+  };
+  
+  const encoder = new VideoEncoder(init);
+  encoder.configure(config);
+
+  return {
+    addFrame (bitmap, keyFrame, time = 0) {
+      let frame = new VideoFrame(bitmap, { timestamp: time });
+      encoder.encode(frame, { keyFrame });
+    },
+    flush () {
+      return encoder.flush();
+    }
+  }
+}
+
 (async () => {
   const startButton = document.querySelector("#start");
   const resolutionSelect = document.querySelector("#resolution");
@@ -129,6 +163,8 @@ async function createWorker(sketch) {
   console.log("YUV Pointer Optimization:", yuvPointer);
   console.log("Bitmap Images?", bitmap);
   console.log("Pixel Format:", format);
+
+  let vidEncoder;
 
   let currentFrame = 0;
   let totalFrames;
@@ -179,6 +215,7 @@ async function createWorker(sketch) {
     const { fps, duration } = settings;
     totalFrames = Math.round(duration * fps);
 
+    vidEncoder = createEncoder(width, height, fps);
 
     console.log("Dimensions: %d x %d", width, height);
     console.log("FPS:", fps);
@@ -198,7 +235,7 @@ async function createWorker(sketch) {
       _yuv_buffer = encoder.create_yuv_buffer(encoder.width, encoder.height);
     }
 
-    renderer.addEventListener("message", ({ data }) => {
+    renderer.addEventListener("message", async ({ data }) => {
       if (typeof data === "string" && data === "finish") {
         finalize();
       } else {
@@ -206,6 +243,7 @@ async function createWorker(sketch) {
         progressText.textContent = `Encoding frame ${
           currentFrame + 1
         } / ${totalFrames}`;
+        if (currentFrame % 100 === 0) await vidEncoder.flush()
         addFrame(data, channels);
         renderer.postMessage("frame");
       }
@@ -225,17 +263,20 @@ async function createWorker(sketch) {
   }
 
   function addFrame(pixels) {
-    if (convertYUV) {
-      if (yuvPointer) {
-        hme.HEAP8.set(pixels, _yuv_buffer);
-        encoder.fast_encode_yuv(_yuv_buffer);
-      } else {
-        encoder.addFrameYuv(pixels);
-      }
-    } else {
-      if (channels === 4) encoder.addFrameRgba(pixels);
-      else encoder.addFrameRgb(pixels);
-    }
+    const timestamp = 1 / settings.fps * currentFrame;
+    const keyframe = currentFrame % 20 === 0;
+    vidEncoder.addFrame(pixels, keyframe, timestamp);
+    // if (convertYUV) {
+    //   if (yuvPointer) {
+    //     hme.HEAP8.set(pixels, _yuv_buffer);
+    //     encoder.fast_encode_yuv(_yuv_buffer);
+    //   } else {
+    //     encoder.addFrameYuv(pixels);
+    //   }
+    // } else {
+    //   if (channels === 4) encoder.addFrameRgba(pixels);
+    //   else encoder.addFrameRgb(pixels);
+    // }
     currentFrame++;
   }
 

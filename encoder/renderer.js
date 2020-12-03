@@ -274,7 +274,8 @@ async function start(settings, config) {
     if (frame == null) {
       self.postMessage("finish");
     } else {
-      self.postMessage(frame, [frame.buffer]);
+      self.postMessage(frame, [frame]);
+      // self.postMessage(frame, [frame.buffer]);
     }
   }
 
@@ -286,13 +287,15 @@ async function start(settings, config) {
       clearInterval(loop);
       return null; // end event
     } else {
-      const stride = reader.channels;
-      const buffer = reader.read();
-      if (convertYUV) {
-        return RGB2YUV420p(buffer, width, height, stride);
-      } else {
-        return buffer;
-      }
+      const bitmap = canvas.transferToImageBitmap();
+      return bitmap;
+      // const stride = reader.channels;
+      // const buffer = reader.read();
+      // if (convertYUV) {
+      //   return RGB2YUV420p(buffer, width, height, stride);
+      // } else {
+      //   return buffer;
+      // }
     }
   }
 
