@@ -6,6 +6,7 @@
     <title>test</title>
     <style>
       body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
         padding: 0;
       }
       #settings {
@@ -19,6 +20,14 @@
       }
       #code {
         margin-top: 10px;
+      }
+      #download {
+        display: block;
+        color: black;
+        margin-top: 20px;
+      }
+      video {
+        margin-top: 20px;
       }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.32.0/codemirror.min.js"></script>
@@ -54,6 +63,7 @@
         <select id="sketch">
           <option value='./encoder/sketches/grid.js' selected>Grid Lines</option>
           <option value='./encoder/sketches/arc.js'>Rotating Rect</option>
+          <option value='./encoder/sketches/three/sketch.bundle.js'>ThreeJS (Bundled)</option>
         </select>
       </label>
     </div>

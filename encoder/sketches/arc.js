@@ -1,7 +1,7 @@
-function sketch () {
+function sketch() {
   return ({ context, width, height, playhead }) => {
     // Fill the canvas with pink
-    context.fillStyle = 'pink';
+    context.fillStyle = "pink";
     context.fillRect(0, 0, width, height);
 
     // Get a seamless 0..1 value for our loop
@@ -17,7 +17,7 @@ function sketch () {
     const cx = width / 2;
     const cy = height / 2;
     const length = height * 0.5;
-    context.fillStyle = 'white';
+    context.fillStyle = "white";
     context.save();
     context.translate(cx, cy);
     context.rotate(rotation);

@@ -2,6 +2,7 @@ import { simd } from "https://unpkg.com/wasm-feature-detect?module";
 
 const settings = {
   duration: 5,
+  context: 'webgl',
   fps: 60,
   dimensions: [256, 256],
 };
@@ -23,7 +24,11 @@ const show = (data) => {
   video.setAttribute("muted", "muted");
   video.setAttribute("autoplay", "autoplay");
   video.setAttribute("controls", "controls");
-  const min = Math.min(settings.dimensions[0], window.innerWidth, window.innerHeight);
+  const min = Math.min(
+    settings.dimensions[0],
+    window.innerWidth,
+    window.innerHeight
+  );
   const aspect = settings.dimensions[0] / settings.dimensions[1];
   const size = min * 0.75;
   video.style.width = `${size}px`;
@@ -31,6 +36,13 @@ const show = (data) => {
 
   document.body.appendChild(video);
   video.src = url;
+
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.id = 'download';
+  anchor.textContent = 'Click here to download MP4 file...';
+  anchor.download = "download.mp4";
+  document.body.appendChild(anchor);
 };
 
 const isOffscreenSupported = (() => {
@@ -45,18 +57,21 @@ const isOffscreenSupported = (() => {
 
 const wasmSupported = (() => {
   try {
-      if (typeof WebAssembly === "object"
-          && typeof WebAssembly.instantiate === "function") {
-          const module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
-          if (module instanceof WebAssembly.Module)
-              return new WebAssembly.Instance(module) instanceof WebAssembly.Instance;
-      }
-  } catch (e) {
-  }
+    if (
+      typeof WebAssembly === "object" &&
+      typeof WebAssembly.instantiate === "function"
+    ) {
+      const module = new WebAssembly.Module(
+        Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00)
+      );
+      if (module instanceof WebAssembly.Module)
+        return new WebAssembly.Instance(module) instanceof WebAssembly.Instance;
+    }
+  } catch (e) {}
   return false;
 })();
 
-async function createWorker (sketch) {
+async function createWorker(sketch) {
   // This worker setup could be better done with esbuild/bundler/etc,
   // or by just putting the sketch code into the worker
   const rendererResp = await fetch("./encoder/renderer.js");
@@ -78,16 +93,19 @@ async function createWorker (sketch) {
   const settingsEl = document.querySelector("#settings");
   const sketchEl = document.querySelector("#sketch");
   if (!wasmSupported) {
-    progressText.textContent = 'No WASM support found; try again with latest Chrome or FireFox';
+    progressText.textContent =
+      "No WASM support found; try again with latest Chrome or FireFox";
     return;
   }
   if (!isOffscreenSupported) {
-    progressText.textContent = 'No support for OffscreenCanvas on this browser';
+    progressText.textContent = "No support for OffscreenCanvas on this browser";
     return;
   }
 
   const simdSupported = await simd();
+
   const format = "rgb";
+  const channels = format === "rgba" ? 4 : 3;
   const convertYUV = true;
   const yuvPointer = true;
   const webgl = true;
@@ -105,22 +123,38 @@ async function createWorker (sketch) {
   encoder.FS = hme.FS;
   console.log("Done loading wasm");
 
+  console.log("Configuration:");
+  console.log("SIMD Support?", simdSupported);
+  console.log("JS YUV Conversion:", convertYUV);
+  console.log("YUV Pointer Optimization:", yuvPointer);
+  console.log("Bitmap Images?", bitmap);
+  console.log("WebGL Pixel Grabber?", webgl);
+  console.log("Pixel Format:", format);
+
   let currentFrame = 0;
   let totalFrames;
   let _yuv_buffer;
 
   onEncoderReady();
 
-  function getDimensions () {
-    const selected = resolutionSelect.options[resolutionSelect.selectedIndex].value;
+  function getDimensions() {
+    const selected =
+      resolutionSelect.options[resolutionSelect.selectedIndex].value;
     switch (selected) {
-      case '2160p': return [3840,2160];
-      case '1440p': return [2560,1440];
-      case '1080p': return [1920,1080];
-      case '720p': return [1280,720];
-      case '360p': return [640,360];
-      case '240p': return [426,240];
-      default: throw new Error('invalid resolution ' + selected);
+      case "2160p":
+        return [3840, 2160];
+      case "1440p":
+        return [2560, 1440];
+      case "1080p":
+        return [1920, 1080];
+      case "720p":
+        return [1280, 720];
+      case "360p":
+        return [640, 360];
+      case "240p":
+        return [426, 240];
+      default:
+        throw new Error("invalid resolution " + selected);
     }
   }
 
@@ -132,7 +166,7 @@ async function createWorker (sketch) {
 
     Object.assign(settings, {
       duration: parseFloat(durationInput.value),
-      dimensions: getDimensions()
+      dimensions: getDimensions(),
     });
 
     settingsEl.style.display = "none";
@@ -140,18 +174,12 @@ async function createWorker (sketch) {
 
     const [width, height] = settings.dimensions;
     const { fps, duration } = settings;
-    const channels = format === "rgba" ? 4 : 3;
     totalFrames = Math.round(duration * fps);
+
 
     console.log("Dimensions: %d x %d", width, height);
     console.log("FPS:", fps);
     console.log("Total Frames:", totalFrames);
-    console.log("SIMD Support?", simdSupported);
-    console.log("Pixel Format:", format);
-    console.log("JS YUV Conversion:", convertYUV);
-    console.log("YUV Pointer Optimization:", yuvPointer);
-    console.log("Bitmap Images?", bitmap);
-    console.log("WebGL Pixel Grabber?", webgl);
 
     // Must be a multiple of 2.
     encoder.width = width;
@@ -175,7 +203,7 @@ async function createWorker (sketch) {
         progressText.textContent = `Encoding frame ${
           currentFrame + 1
         } / ${totalFrames}`;
-        addFrame(data);
+        addFrame(data, channels);
         renderer.postMessage("frame");
       }
     });
@@ -212,9 +240,8 @@ async function createWorker (sketch) {
     encoder.finalize();
     const uint8Array = encoder.FS.readFile(encoder.outputFilename);
     const buf = uint8Array.buffer;
-    // download(buf);
     show(buf);
-    progressText.textContent = 'Finished Encoding';
+    progressText.textContent = "Finished Encoding";
     if (convertYUV && yuvPointer) encoder.free_yuv_buffer(_yuv_buffer);
     encoder.delete();
     console.timeEnd("encoder");

@@ -29,6 +29,10 @@ It's still pretty slow compared to native, some ways it could be faster/cleaner:
 - Ensure that WASM version of `minih264` library is indeed taking advantage of SIMD
 - Open to other ideas! Please create an issue if you think you see any ways to make it faster.
 
+## How can it work on FireFox, mobile phones, etc?
+
+The `h264-mp4-encoder` already works on most browsers, this demo is just to see how more advanced browser features could make it faster: OffscreenCanvas, dynamic imports in a web worker, WASM, and SIMD.
+
 ## License
 
 MIT, see [LICENSE.md](http://github.com/mattdesl/mp4-wasm-encoder/blob/master/LICENSE.md) for details.
