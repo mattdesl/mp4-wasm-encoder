@@ -7,7 +7,7 @@ See [h264-mp4-encoder](https://github.com/TrevorSundberg/h264-mp4-encoder) for m
 The demo probably only works in Chrome at the moment.
 
 Test Video:
-Encoding 5 second MP4, 1920x1080 60FPS takes about ~21.85 seconds. Open to suggestions on how to speed that up.
+Encoding 5 second MP4, 1920x1080 60FPS takes about ~21.85 seconds (~18 seconds with Chrome SIMD support). Open to suggestions on how to speed that up.
 
 Most of the guts of this are from `h264-mp4-encoder`, thanks to Trevor Sundberg for the great work there. I've forked it to use WASM, include some faster functions, and a few other things [here](https://github.com/mattdesl/h264-mp4-encoder).
 

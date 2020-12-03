@@ -1,12 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>test</title>
-</head>
-<body>
-  Open DevTools Console
-  <script type="module" src="./encoder/main.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>test</title>
+    <style>
+      body {
+        padding: 0;
+      }
+      #settings {
+        padding: 20px;
+        display: flex;
+        margin-top: 10px;
+        flex-direction: column;
+      }
+      #settings label {
+        margin-bottom: 10px;
+      }
+      #code {
+        margin-top: 10px;
+      }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.32.0/codemirror.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.32.0/codemirror.min.css" />
+  </head>
+  <body>
+    <div id="progress">Loading modules...</div>
+    <div id="settings" style="display: none">
+      <label>
+        Duration:
+        <input
+          id="duration"
+          type="number"
+          min="1"
+          max="60"
+          step="1"
+          value="5"
+        />
+      </label>
+      <label>
+        Resolution:
+        <select id="resolution">
+          <option>240p</option>
+          <option>360p</option>
+          <option selected>720p</option>
+          <option>1080p</option>
+          <option>1440p</option>
+          <option>2160p</option>
+        </select>
+      </label>
+      <label>
+        Program:
+        <select id="sketch">
+          <option value='./encoder/sketches/grid.js' selected>Grid Lines</option>
+          <option value='./encoder/sketches/arc.js'>Rotating Rect</option>
+        </select>
+      </label>
+    </div>
+    <div>
+      <button id="start" style="display: none">Start</button>
+    </div>
+    <script type="module" src="./encoder/main.js"></script>
+  </body>
 </html>

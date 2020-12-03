@@ -1,76 +1,234 @@
-const renderer = new Worker('./encoder/renderer.js');
-const encoder = new Worker('./encoder/encoder.js');
+import { simd } from "https://unpkg.com/wasm-feature-detect?module";
 
 const settings = {
   duration: 5,
   fps: 60,
-  format: 'rgb', // whether to grab RGB or RGBA
-  convertYUV: true, // converts RGB to YUV frames
-  dimensions: [1920, 1080],
+  dimensions: [256, 256],
 };
 
 const download = (data, filename) => {
   const url = URL.createObjectURL(new Blob([data], { type: "video/mp4" }));
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = filename || "download";
+  anchor.download = filename || "download.mp4";
   anchor.click();
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 5000);
 };
 
-renderer.postMessage({
-  event: 'start',
-  settings
-});
-encoder.postMessage({
-  event: 'start',
-  settings
-});
+const show = (data) => {
+  const url = URL.createObjectURL(new Blob([data], { type: "video/mp4" }));
+  const video = document.createElement("video");
+  video.setAttribute("muted", "muted");
+  video.setAttribute("autoplay", "autoplay");
+  video.setAttribute("controls", "controls");
+  const min = Math.min(settings.dimensions[0], window.innerWidth, window.innerHeight);
+  const aspect = settings.dimensions[0] / settings.dimensions[1];
+  const size = min * 0.75;
+  video.style.width = `${size}px`;
+  video.style.height = `${size / aspect}px`;
 
-function onReady (worker) {
-  return new Promise(resolve => {
-    function handler ({ data }) {
-      worker.removeEventListener('message', handler);
-      if (data.event === 'ready') {
-        resolve(data);
+  document.body.appendChild(video);
+  video.src = url;
+};
+
+const isOffscreenSupported = (() => {
+  if (typeof self.OffscreenCanvas === "undefined") return false;
+  try {
+    new self.OffscreenCanvas(32, 32).getContext("2d");
+    return true;
+  } catch (_) {
+    return false;
+  }
+})();
+
+const wasmSupported = (() => {
+  try {
+      if (typeof WebAssembly === "object"
+          && typeof WebAssembly.instantiate === "function") {
+          const module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
+          if (module instanceof WebAssembly.Module)
+              return new WebAssembly.Instance(module) instanceof WebAssembly.Instance;
       }
-    }
-    worker.addEventListener('message', handler);
-  })
+  } catch (e) {
+  }
+  return false;
+})();
+
+async function createWorker (sketch) {
+  // This worker setup could be better done with esbuild/bundler/etc,
+  // or by just putting the sketch code into the worker
+  const rendererResp = await fetch("./encoder/renderer.js");
+  const rendererSrc = sketch + ";\n" + (await rendererResp.text());
+  const rendererBlob = new Blob([rendererSrc], {
+    type: "application/javascript",
+  });
+  const rendererUrl = URL.createObjectURL(rendererBlob);
+  return new Worker(rendererUrl);
+  // If you had it all in the renderer.js it would just look like this:
+  // return new Worker("./encoder/renderer.js");
 }
 
 (async () => {
-  console.time('pixels')
-  await Promise.all([onReady(renderer), onReady(encoder)])
-  console.log('All ready')
+  const startButton = document.querySelector("#start");
+  const resolutionSelect = document.querySelector("#resolution");
+  const durationInput = document.querySelector("#duration");
+  const progressText = document.querySelector("#progress");
+  const settingsEl = document.querySelector("#settings");
+  const sketchEl = document.querySelector("#sketch");
+  if (!wasmSupported) {
+    progressText.textContent = 'No WASM support found; try again with latest Chrome or FireFox';
+    return;
+  }
+  if (!isOffscreenSupported) {
+    progressText.textContent = 'No support for OffscreenCanvas on this browser';
+    return;
+  }
 
-  encoder.addEventListener('message', (evt) => {
-    const { data } = evt;
-    if (data.event === 'frame-encoded') {
-      // console.log('Received encoder frame',evt)
-      // tick();
-      // renderer.postMessage({ event: 'flush' });
-    } else if (data.event === 'download') {
-      console.timeEnd('pixels')
-      download(data.data);
+  const simdSupported = await simd();
+  const format = "rgb";
+  const convertYUV = true;
+  const yuvPointer = true;
+  const webgl = true;
+  const bitmap = true;
+  const frameQueueLimit = 5;
+
+  console.log("Loading wasm...");
+  let Module = await import(
+    simdSupported
+      ? "../h264/simd/h264-mp4-encoder.js"
+      : "../h264/no-simd/h264-mp4-encoder.js"
+  );
+  const hme = await Module.default();
+  const encoder = new hme.H264MP4Encoder();
+  encoder.FS = hme.FS;
+  console.log("Done loading wasm");
+
+  let currentFrame = 0;
+  let totalFrames;
+  let _yuv_buffer;
+
+  onEncoderReady();
+
+  function getDimensions () {
+    const selected = resolutionSelect.options[resolutionSelect.selectedIndex].value;
+    switch (selected) {
+      case '2160p': return [3840,2160];
+      case '1440p': return [2560,1440];
+      case '1080p': return [1920,1080];
+      case '720p': return [1280,720];
+      case '360p': return [640,360];
+      case '240p': return [426,240];
+      default: throw new Error('invalid resolution ' + selected);
     }
-  });
-  renderer.addEventListener('message', (evt) => {
-    const { data } = evt;
-    if (data.event === 'receive-next-frame') {
-      // console.log('Asking for encoding..')
-      // console.log('Active:', data.activeBuffers)
-      encoder.postMessage({ event: 'encode-frame', data: data.data, frame: data.frame }, [ data.data.buffer ]);
-    } else if (data.event === 'renderer-end') {
-      encoder.postMessage({ event: 'finalize' });
+  }
+
+  // Initial setup of renderer
+  async function startEncoding() {
+    const selectedSketch = sketchEl.options[sketchEl.selectedIndex].value;
+    const sketchSrc = await (await fetch(selectedSketch)).text();
+    const renderer = await createWorker(sketchSrc);
+
+    Object.assign(settings, {
+      duration: parseFloat(durationInput.value),
+      dimensions: getDimensions()
+    });
+
+    settingsEl.style.display = "none";
+    console.time("encoder");
+
+    const [width, height] = settings.dimensions;
+    const { fps, duration } = settings;
+    const channels = format === "rgba" ? 4 : 3;
+    totalFrames = Math.round(duration * fps);
+
+    console.log("Dimensions: %d x %d", width, height);
+    console.log("FPS:", fps);
+    console.log("Total Frames:", totalFrames);
+    console.log("SIMD Support?", simdSupported);
+    console.log("Pixel Format:", format);
+    console.log("JS YUV Conversion:", convertYUV);
+    console.log("YUV Pointer Optimization:", yuvPointer);
+    console.log("Bitmap Images?", bitmap);
+    console.log("WebGL Pixel Grabber?", webgl);
+
+    // Must be a multiple of 2.
+    encoder.width = width;
+    encoder.height = height;
+    encoder.quantizationParameter = 10;
+    encoder.speed = 10; // adjust to taste
+    encoder.frameRate = fps;
+    // encoder.groupOfPictures = fps; // adjust to taste
+    encoder.debug = false;
+    encoder.initialize();
+
+    if (convertYUV && yuvPointer) {
+      _yuv_buffer = encoder.create_yuv_buffer(encoder.width, encoder.height);
     }
-  })
-  renderer.postMessage({ event: 'flush' });
-  
-  // function tick () {
-  //   renderer.postMessage({
-  //     event: 'get-next-frame',
-  //   });
-  // }
-  
-  // tick();
+
+    renderer.addEventListener("message", ({ data }) => {
+      if (typeof data === "string" && data === "finish") {
+        finalize();
+      } else {
+        // console.log('Encoding frame %d / %d', currentFrame + 1, totalFrames);
+        progressText.textContent = `Encoding frame ${
+          currentFrame + 1
+        } / ${totalFrames}`;
+        addFrame(data);
+        renderer.postMessage("frame");
+      }
+    });
+
+    renderer.postMessage({
+      event: "setup",
+      settings,
+      config: {
+        frameQueueLimit,
+        format,
+        convertYUV,
+        bitmap,
+        webgl,
+      },
+    });
+  }
+
+  function addFrame(pixels) {
+    if (convertYUV) {
+      if (yuvPointer) {
+        hme.HEAP8.set(pixels, _yuv_buffer);
+        encoder.fast_encode_yuv(_yuv_buffer);
+      } else {
+        encoder.addFrameYuv(pixels);
+      }
+    } else {
+      if (channels === 4) encoder.addFrameRgba(pixels);
+      else encoder.addFrameRgb(pixels);
+    }
+    currentFrame++;
+  }
+
+  function finalize() {
+    encoder.finalize();
+    const uint8Array = encoder.FS.readFile(encoder.outputFilename);
+    const buf = uint8Array.buffer;
+    // download(buf);
+    show(buf);
+    progressText.textContent = 'Finished Encoding';
+    if (convertYUV && yuvPointer) encoder.free_yuv_buffer(_yuv_buffer);
+    encoder.delete();
+    console.timeEnd("encoder");
+  }
+
+  function onEncoderReady() {
+    startButton.style.display = "";
+    settingsEl.style.display = "";
+    progressText.textContent =
+      "Choose your settings, paste your code, and click Start to encode an MP4.";
+
+    startButton.addEventListener("click", () => {
+      startButton.style.display = "none";
+      startEncoding();
+    });
+  }
 })();

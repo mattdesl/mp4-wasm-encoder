@@ -1,4 +1,4 @@
-export function sketch() {
+function sketch() {
   return ({ context, frame, width, height, playhead }) => {
     context.clearRect(0, 0, width, height);
     context.fillStyle = "white";
