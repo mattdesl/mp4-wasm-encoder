@@ -251,7 +251,7 @@ async function createWorker(sketch) {
     startButton.style.display = "";
     settingsEl.style.display = "";
     progressText.textContent =
-      "Choose your settings, paste your code, and click Start to encode an MP4.";
+      "Choose video settings, then click Start to encode an MP4.";
 
     startButton.addEventListener("click", () => {
       startButton.style.display = "none";
