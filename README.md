@@ -33,6 +33,14 @@ It's still pretty slow compared to native, some ways it could be faster/cleaner:
 
 The `h264-mp4-encoder` already works on most browsers, this demo is just to see how more advanced browser features could make it faster: OffscreenCanvas, dynamic imports in a web worker, WASM, and SIMD.
 
+## Just Give me the WASM!
+
+In the `h264` folder is a drop-in WASM+JS files for SIMD and non-SIMD supported environments. These must be imported as an ES module, see [./encoder/main.js](./encoder/main.js), but otherwise you can get it running without any dependencies or build tools.
+
+Feel free to use the WASM for your own purposes, though this repo won't be maintained like a typical library, so you might rather use the original non-WASM version at [h264-mp4-encoder](https://github.com/TrevorSundberg/h264-mp4-encoder) library which will probably receive more frequent updates.
+
+In future, I plan to wrap some of this R&D work in a more 'official' MP4+GIF encoder library that will receive regular updates.
+
 ## License
 
 MIT, see [LICENSE.md](http://github.com/mattdesl/mp4-wasm-encoder/blob/master/LICENSE.md) for details.
