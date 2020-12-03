@@ -10,7 +10,7 @@ Fast client-side MP4 encoding demo based on [Trevor Sundberg's](https://github.c
 
 A 5 second 1920x1080 60FPS MP4 takes about 10 seconds to encode with Chrome and SIMD enabled.
 
-## How it's Fast (for a browser)
+## How is this fast? (for a browser)
 
 This is mostly based on Trevor Sundberg's work with [h264-mp4-encoder](https://github.com/TrevorSundberg/h264-mp4-encoder) (thanks!). Here, I've mostly just been exploring how to improve performance:
 
