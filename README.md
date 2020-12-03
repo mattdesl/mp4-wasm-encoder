@@ -1,21 +1,33 @@
 # client-mp4-test
 
-A JS+WASM approach to fast client-side MP4 encoding (H264), that could potentially be used for long-running videos (thousands of frames). The WASM encoder is around 700KB, which is big but much smaller than ffmpeg-wasm.
+Fast client-side MP4 encoding demo based on [Trevor Sundberg's](https://github.com/TrevorSundberg/h264-mp4-encoder) npm library. Currently only works in Chrome due to OffscreenCanvas.
 
-See [h264-mp4-encoder](https://github.com/TrevorSundberg/h264-mp4-encoder) for more details and "how it works", which this repo is mostly based on top of.
+- Creates a H264-encoded MP4 video in the browser
+- Can be used for long videos (thousands of frames)
+- WASM dependency is ~700KB before gzip (big, but way smaller than including ffmpeg.wasm)
+- Uses WASM SIMD if enabled (Chrome only; first enable "simd" in about:flags)
+- Uses OffscreenCanvas to speed up rendering in a web worker (Chrome only)
 
-The demo probably only works in Chrome at the moment.
+A 5 second 1920x1080 60FPS MP4 takes about 10 seconds to encode with Chrome and SIMD enabled.
 
-Test Video:
-Encoding 5 second MP4, 1920x1080 60FPS takes about ~21.85 seconds (~18 seconds with Chrome SIMD support). Open to suggestions on how to speed that up.
+## How it's Fast (for a browser)
 
-Most of the guts of this are from `h264-mp4-encoder`, thanks to Trevor Sundberg for the great work there. I've forked it to use WASM, include some faster functions, and a few other things [here](https://github.com/mattdesl/h264-mp4-encoder).
+This is mostly based on Trevor Sundberg's work with [h264-mp4-encoder](https://github.com/TrevorSundberg/h264-mp4-encoder) (thanks!). Here, I've mostly just been exploring how to improve performance:
 
-The built WASM files have been included in the `./h264` folder here, so you can drag and drop that into your projects. All the worker threading/pooling is pretty hacked together, and more of a proof of concept (see below).
+- Use workers and OffscreenCanvas for rendering
+  - Save frames with `transferToImageBitmap()` then into a RGB buffer with WebGL
+  - Convert RGB to YUV in the worker and then post that to the main encoder thread
+- Uses a true WASM file, and WASM SIMD where available
+- Sets Emscripten memory directly to avoid passing any array buffers to C/C++
+- A few additional tweaks and new flags added to my C/C++ fork
 
-## Concept
+## How it could be faster?
 
-...todo...
+It's still pretty slow compared to native, some ways it could be faster/cleaner:
+
+- Use a second worker (thread) to handle encoding, this might not speed things up much but at least will take a load off main UI thread
+- Ensure that WASM version of `minih264` library is indeed taking advantage of SIMD
+- Open to other ideas! Please create an issue if you think you see any ways to make it faster.
 
 ## License
 
