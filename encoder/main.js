@@ -104,7 +104,7 @@ async function createWorker(sketch) {
 
   const simdSupported = await simd();
 
-  const format = "rgb";
+  const format = "rgba"; // todo: support RGB on windows
   const channels = format === "rgba" ? 4 : 3;
   const convertYUV = true;
   const yuvPointer = true;
