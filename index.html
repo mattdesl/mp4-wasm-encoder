@@ -77,22 +77,15 @@
       <label>
         Program:
         <select id="sketch">
-          <option value='./encoder/sketches/grid.js' selected>Grid Lines</option>
+          <option value='./encoder/sketches/grid.js'>Grid Lines</option>
           <option value='./encoder/sketches/arc.js'>Rotating Rect</option>
-          <option value='./encoder/sketches/three/sketch.bundle.js'>ThreeJS (Bundled)</option>
+          <option selected value='./encoder/sketches/three/sketch.bundle.js'>ThreeJS (Bundled)</option>
         </select>
       </label>
-      <!-- <label>
-        Sample Format: (RGB is faster but may not work on Windows yet)
-        <select id="sample">
-          <option>RGB</option>
-          <option>RGBA</option>
-          <option selected>720p</option>
-          <option>1080p</option>
-          <option>1440p</option>
-          <option>2160p</option>
-        </select>
-      </label> -->
+      <label>
+        WebGL Pixel Fetch:
+        <input type='checkbox' id="webgl" checked>
+      </label>
     </div>
     <div>
       <button id="start" style="display: none">Start</button>

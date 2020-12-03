@@ -92,6 +92,7 @@ async function createWorker(sketch) {
   const progressText = document.querySelector("#progress");
   const settingsEl = document.querySelector("#settings");
   const sketchEl = document.querySelector("#sketch");
+  const webglEl = document.querySelector("#webgl");
   if (!wasmSupported) {
     progressText.textContent =
       "No WASM support found; try again with latest Chrome or FireFox";
@@ -108,7 +109,6 @@ async function createWorker(sketch) {
   const channels = format === "rgba" ? 4 : 3;
   const convertYUV = true;
   const yuvPointer = true;
-  const webgl = true;
   const bitmap = true;
   const frameQueueLimit = 5;
 
@@ -128,12 +128,12 @@ async function createWorker(sketch) {
   console.log("JS YUV Conversion:", convertYUV);
   console.log("YUV Pointer Optimization:", yuvPointer);
   console.log("Bitmap Images?", bitmap);
-  console.log("WebGL Pixel Grabber?", webgl);
   console.log("Pixel Format:", format);
 
   let currentFrame = 0;
   let totalFrames;
   let _yuv_buffer;
+  let encoderStart;
 
   onEncoderReady();
 
@@ -163,6 +163,8 @@ async function createWorker(sketch) {
     const selectedSketch = sketchEl.options[sketchEl.selectedIndex].value;
     const sketchSrc = await (await fetch(selectedSketch)).text();
     const renderer = await createWorker(sketchSrc);
+    const webgl = Boolean(webglEl.checked);
+    console.log("WebGL Pixel Grabber?", webgl);
 
     Object.assign(settings, {
       duration: parseFloat(durationInput.value),
@@ -170,6 +172,7 @@ async function createWorker(sketch) {
     });
 
     settingsEl.style.display = "none";
+    encoderStart = performance.now();
     console.time("encoder");
 
     const [width, height] = settings.dimensions;
@@ -240,11 +243,14 @@ async function createWorker(sketch) {
     encoder.finalize();
     const uint8Array = encoder.FS.readFile(encoder.outputFilename);
     const buf = uint8Array.buffer;
+
+    const time = Math.floor(performance.now() - encoderStart);
+    console.timeEnd("encoder");
+
     show(buf);
-    progressText.textContent = "Finished Encoding";
+    progressText.textContent = `Finished Encoding in ${time} milliseconds`;
     if (convertYUV && yuvPointer) encoder.free_yuv_buffer(_yuv_buffer);
     encoder.delete();
-    console.timeEnd("encoder");
   }
 
   function onEncoderReady() {

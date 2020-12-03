@@ -4,6 +4,14 @@
 const isDocument =
   typeof window !== "undefined" && typeof window.document !== "undefined";
 
+const context2DAttributes = {
+  antialias: true,
+  alpha: false,
+  desynchronized: true,
+  powerPreference: "high-performance",
+  // willReadFrequently: true // not sure about this as it will force software
+};
+
 const isOffscreenSupported = (() => {
   if (typeof self.OffscreenCanvas === "undefined") return false;
   try {
@@ -55,6 +63,7 @@ function createCanvas(
 function pixelGrabber(context, opts = {}) {
   const canvas = context.canvas;
   const {
+    direct = false,
     sharedBuffer = false,
     format = "rgba",
     webgl: useGL = true,
@@ -66,7 +75,7 @@ function pixelGrabber(context, opts = {}) {
     useBitmap && useGL && typeof canvas.transferToImageBitmap === "function";
 
   let gl, glFormat, glInternalFormat;
-  if (useGL) {
+  if (useGL && !direct) {
     const { canvas: webgl, context: _gl } = createCanvas(
       "webgl",
       128,
@@ -112,6 +121,10 @@ function pixelGrabber(context, opts = {}) {
       texture,
       0
     );
+  } else if (direct && useGL) {
+    gl = context;
+    glFormat = format === "rgba" ? gl.RGBA : gl.RGB;
+    glInternalFormat = glFormat;
   }
 
   const channels = format === "rgb" && useGL ? 3 : 4;
@@ -121,11 +134,18 @@ function pixelGrabber(context, opts = {}) {
     buffer = new Uint8Array(bufferSize);
   }
 
+  let sharedCanvas;
+  let sharedContext;
+
   return {
     bufferSize,
     channels,
     read() {
-      if (useGL) {
+      if (direct && useGL) {
+        const buf = sharedBuffer ? buffer : new Uint8Array(bufferSize);
+        gl.readPixels(0, 0, width, height, glFormat, gl.UNSIGNED_BYTE, buf);
+        return buf;
+      } else if (useGL) {
         const buf = sharedBuffer ? buffer : new Uint8Array(bufferSize);
         let input;
         if (usingBitmap) {
@@ -145,7 +165,21 @@ function pixelGrabber(context, opts = {}) {
         if (usingBitmap) input.close();
         return buf;
       } else {
-        return context.getImageData(0, 0, width, height).data;
+        if (typeof context.getImageData === 'function') {
+          return context.getImageData(0, 0, width, height).data;
+        } else {
+          if (!sharedCanvas) {
+            let result = createCanvas('2d', width, height, {
+              offscreen: true,
+              attributes: { ...context2DAttributes }
+            });
+            sharedCanvas = result.canvas;
+            sharedContext = result.context;
+          }
+          sharedContext.clearRect(0, 0, width, height);
+          sharedContext.drawImage(canvas, 0, 0, width, height);
+          return sharedContext.getImageData(0, 0, width, height).data;
+        }
       }
     },
   };
@@ -169,13 +203,7 @@ async function start(settings, config) {
 
   const { canvas, context } = createCanvas(contextName, width, height, {
     offscreen: true,
-    attributes: {
-      antialias: true,
-      alpha: false,
-      desynchronized: true,
-      powerPreference: "high-performance",
-      // willReadFrequently: true // not sure about this as it will force software
-    },
+    attributes: { ...context2DAttributes },
   });
 
   const props = {
@@ -203,14 +231,17 @@ async function start(settings, config) {
     console.warn('No "sketch" function exists in worker scope');
   }
   const render = typeof main !== "function" ? () => {} : main(props);
+  const useDirectWebGL = false; // could work except for Y-flip...
+  const isDirectWebGL = useDirectWebGL && contextName !== '2d';
 
   let frame = 0;
   let finished = false;
   const reader = pixelGrabber(context, {
+    direct: isDirectWebGL,
     format,
     bitmap,
     webgl,
-    sharedBuffer: format === "rgb" && convertYUV,
+    sharedBuffer: convertYUV,
   });
 
   let queue = [];
