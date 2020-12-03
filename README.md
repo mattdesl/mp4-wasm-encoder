@@ -5,7 +5,7 @@ Fast client-side MP4 encoding demo based on [Trevor Sundberg's](https://github.c
 - Creates a H264-encoded MP4 video in the browser
 - Can be used for long videos (thousands of frames)
 - WASM dependency is ~700KB before gzip (big, but way smaller than including ffmpeg.wasm)
-- Uses WASM SIMD if enabled (Chrome only; first enable "simd" in about:flags)
+- Uses WASM SIMD if enabled (Chrome only; first enable `#enable-webassembly-simd` in about:flags)
 - Uses OffscreenCanvas to speed up rendering in a web worker (Chrome only)
 
 A 5 second 1920x1080 60FPS MP4 takes about 10 seconds to encode with Chrome and SIMD enabled.
