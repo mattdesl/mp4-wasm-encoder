@@ -2,6 +2,8 @@
 
 Fast client-side MP4 encoding demo based on [Trevor Sundberg's](https://github.com/TrevorSundberg/h264-mp4-encoder) npm library. Currently only works in Chrome due to OffscreenCanvas.
 
+> [[ Demo Link ]](https://mattdesl.github.io/mp4-wasm-encoder/)
+
 - Creates a H264-encoded MP4 video in the browser
 - Can be used for long videos (thousands of frames)
 - WASM dependency is ~700KB before gzip (big, but way smaller than including ffmpeg.wasm)
