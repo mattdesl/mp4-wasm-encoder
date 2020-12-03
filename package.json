@@ -1,5 +1,5 @@
 {
-  "name": "client-mp4-test",
+  "name": "mp4-wasm-encoder",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -19,10 +19,10 @@
   "keywords": [],
   "repository": {
     "type": "git",
-    "url": "git://github.com/mattdesl/client-mp4-test.git"
+    "url": "git://github.com/mattdesl/mp4-wasm-encoder.git"
   },
-  "homepage": "https://github.com/mattdesl/client-mp4-test",
+  "homepage": "https://github.com/mattdesl/mp4-wasm-encoder",
   "bugs": {
-    "url": "https://github.com/mattdesl/client-mp4-test/issues"
+    "url": "https://github.com/mattdesl/mp4-wasm-encoder/issues"
   }
 }

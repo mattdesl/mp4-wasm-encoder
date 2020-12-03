@@ -1,4 +1,4 @@
-# client-mp4-test
+# mp4-wasm-encoder
 
 Fast client-side MP4 encoding demo based on [Trevor Sundberg's](https://github.com/TrevorSundberg/h264-mp4-encoder) npm library. Currently only works in Chrome due to OffscreenCanvas.
 
@@ -31,4 +31,4 @@ It's still pretty slow compared to native, some ways it could be faster/cleaner:
 
 ## License
 
-MIT, see [LICENSE.md](http://github.com/mattdesl/client-mp4-test/blob/master/LICENSE.md) for details.
+MIT, see [LICENSE.md](http://github.com/mattdesl/mp4-wasm-encoder/blob/master/LICENSE.md) for details.
