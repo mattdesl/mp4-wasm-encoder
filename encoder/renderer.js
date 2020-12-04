@@ -76,23 +76,18 @@ function pixelGrabber(context, opts = {}) {
 
   let gl, glFormat, glInternalFormat;
   if (useGL && !direct) {
-    const { canvas: webgl, context: _gl } = createCanvas(
-      "webgl",
-      128,
-      128,
-      {
-        offscreen: true,
-        attributes: {
-          alpha: false,
-          desynchronized: true,
-          antialias: false,
-          depth: false,
-          powerPreference: "high-performance",
-          stencil: false,
-          // willReadFrequently: true // not sure about this as it will force software
-        },
-      }
-    );
+    const { canvas: webgl, context: _gl } = createCanvas("webgl", 128, 128, {
+      offscreen: true,
+      attributes: {
+        alpha: false,
+        desynchronized: true,
+        antialias: false,
+        depth: false,
+        powerPreference: "high-performance",
+        stencil: false,
+        // willReadFrequently: true // not sure about this as it will force software
+      },
+    });
     gl = _gl;
     const texture = gl.createTexture();
     glFormat = format === "rgba" ? gl.RGBA : gl.RGB;
@@ -166,13 +161,13 @@ function pixelGrabber(context, opts = {}) {
         if (usingBitmap) input.close();
         return buf;
       } else {
-        if (typeof context.getImageData === 'function') {
+        if (typeof context.getImageData === "function") {
           return context.getImageData(0, 0, width, height).data;
         } else {
           if (!sharedCanvas) {
-            let result = createCanvas('2d', width, height, {
+            let result = createCanvas("2d", width, height, {
               offscreen: true,
-              attributes: { ...context2DAttributes }
+              attributes: { ...context2DAttributes },
             });
             sharedCanvas = result.canvas;
             sharedContext = result.context;
@@ -189,13 +184,19 @@ function pixelGrabber(context, opts = {}) {
 async function start(settings, config) {
   const [width, height] = settings.dimensions;
   const { fps, duration } = settings;
-  const { format = "rgba", webgl, bitmap, convertYUV = false, frameQueueLimit = 5 } = config;
+  const {
+    format = "rgba",
+    webgl,
+    bitmap,
+    sendBitmap = true,
+    convertYUV = false,
+    frameQueueLimit = 5,
+  } = config;
   const totalFrames = Math.round(duration * fps);
 
-
-  let contextName = '2d';
+  let contextName = "2d";
   let main = sketch;
-  if (typeof main !== 'undefined' && typeof main.default !== 'undefined') {
+  if (typeof main !== "undefined" && typeof main.default !== "undefined") {
     main = sketch.default;
     if (sketch.settings) {
       if (sketch.settings.context) contextName = sketch.settings.context;
@@ -233,7 +234,7 @@ async function start(settings, config) {
   }
   const render = typeof main !== "function" ? () => {} : main(props);
   const useDirectWebGL = false; // could work except for Y-flip...
-  const isDirectWebGL = useDirectWebGL && contextName !== '2d';
+  const isDirectWebGL = useDirectWebGL && contextName !== "2d";
 
   let frame = 0;
   let finished = false;
@@ -246,40 +247,50 @@ async function start(settings, config) {
   });
 
   let queue = [];
-  self.addEventListener("message", ({ data }) => {
+  self.addEventListener("message", async ({ data }) => {
     if (data === "frame") {
       if (queue.length === 0) {
+        const f = await nextFrame();
         // no queued frames, just render and post one immediately
-        postFrame(nextFrame());
+        await postFrame(f);
       } else {
         // we have some frames queued, take from start
-        const frame = queue.shift();
-        postFrame(frame);
+        const f = queue.shift();
+        await postFrame(f);
       }
     }
   });
 
-  const throttle = 0;
-  let loop = setInterval(() => {
+  let loop;
+
+  async function tick () {
     if (finished) return;
     // we have room in our queue
     if (queue.length < frameQueueLimit) {
-      const frame = nextFrame();
+      const frame = await nextFrame();
       queue.push(frame);
     }
-  }, throttle);
+    requestAnimationFrame(tick);
+  }
 
-  postFrame(nextFrame());
+  (async () => {
+    requestAnimationFrame(tick);
+    const f = await nextFrame();
+    await postFrame(f);
+  })();
 
-  function postFrame(frame) {
+  async function postFrame(frame) {
     if (frame == null) {
       self.postMessage("finish");
     } else {
-      self.postMessage(frame, [frame.buffer]);
+      if (sendBitmap) {
+        self.postMessage(frame, [frame]);
+      }
+      else self.postMessage(frame, [frame.buffer]);
     }
   }
 
-  function nextFrame() {
+  async function nextFrame() {
     if (finished) return;
     const done = renderFrame();
     if (done) {
@@ -288,11 +299,18 @@ async function start(settings, config) {
       return null; // end event
     } else {
       const stride = reader.channels;
-      const buffer = reader.read();
-      if (convertYUV) {
-        return RGB2YUV420p(buffer, width, height, stride);
-      } else {
+      if (sendBitmap) {
+        const blob = await canvas.convertToBlob({ type: 'image/png' });
+        const buffer = await blob.arrayBuffer();
+        console.log(buffer)
         return buffer;
+      } else {
+        const buffer = reader.read();
+        if (convertYUV) {
+          return RGB2YUV420p(buffer, width, height, stride);
+        } else {
+          return buffer;
+        }
       }
     }
   }

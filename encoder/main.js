@@ -107,9 +107,10 @@ async function createWorker(sketch) {
 
   const format = "rgba"; // todo: support RGB on windows
   const channels = format === "rgba" ? 4 : 3;
-  const convertYUV = true;
-  const yuvPointer = true;
+  const convertYUV = false;
+  const yuvPointer = false;
   const bitmap = true;
+  const sendBitmap = true;
   const frameQueueLimit = 5;
 
   console.log("Loading wasm...");
@@ -171,6 +172,8 @@ async function createWorker(sketch) {
       dimensions: getDimensions(),
     });
 
+    const dir = await window.showDirectoryPicker();
+
     settingsEl.style.display = "none";
     encoderStart = performance.now();
     console.time("encoder");
@@ -200,7 +203,7 @@ async function createWorker(sketch) {
       _yuv_buffer = encoder.create_buffer(yuvLen);
     }
 
-    renderer.addEventListener("message", ({ data }) => {
+    renderer.addEventListener("message", async ({ data }) => {
       if (typeof data === "string" && data === "finish") {
         finalize();
       } else {
@@ -208,7 +211,16 @@ async function createWorker(sketch) {
         progressText.textContent = `Encoding frame ${
           currentFrame + 1
         } / ${totalFrames}`;
-        addFrame(data, channels);
+
+        const frameDigitCount = String(totalFrames).length;
+        const curFrameName = String(currentFrame).padStart(frameDigitCount, '0')
+        const curFrameFile = `${curFrameName}.png`;
+
+        const fh = await dir.getFileHandle(curFrameFile, { create: true });
+        const fw = await fh.createWritable();
+        await fw.write(data)
+        await fw.close();
+        currentFrame++;
         renderer.postMessage("frame");
       }
     });
@@ -221,6 +233,7 @@ async function createWorker(sketch) {
         format,
         convertYUV,
         bitmap,
+        sendBitmap,
         webgl,
       },
     });
@@ -249,7 +262,7 @@ async function createWorker(sketch) {
     const time = Math.floor(performance.now() - encoderStart);
     console.timeEnd("encoder");
 
-    show(buf);
+    // show(buf);
     progressText.textContent = `Finished Encoding in ${time} milliseconds`;
     if (convertYUV && yuvPointer) encoder.free_buffer(_yuv_buffer);
     encoder.delete();
