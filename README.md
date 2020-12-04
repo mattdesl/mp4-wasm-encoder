@@ -21,7 +21,7 @@ This is mostly based on Trevor Sundberg's work with [h264-mp4-encoder](https://g
   - Convert RGB to YUV in the worker and then post that to the main encoder thread
 - Uses a true WASM file, and WASM SIMD where available
 - Sets Emscripten memory directly to avoid passing any array buffers to C/C++
-- A few additional tweaks and new flags added to my C/C++ fork
+- A few additional tweaks and new flags added to my C/C++ [fork](https://github.com/mattdesl/h264-mp4-encoder)
 - I'm also using an entirely different library to build the MP4 container – shrinking the final WASM+JS size from ~700KB to ~200KB. Compare to the pure-JS version of `h264-mp4-encoder` which is ~1.7MB.
 
 ## How it could be faster?
