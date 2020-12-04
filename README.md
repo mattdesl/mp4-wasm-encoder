@@ -1,12 +1,12 @@
 # mp4-wasm-encoder
 
-Fast client-side MP4 encoding demo based on [Trevor Sundberg's](https://github.com/TrevorSundberg/h264-mp4-encoder) npm library. Currently only works in Chrome due to OffscreenCanvas.
+Fast client-side MP4 encoding demo based on a fork of [Trevor Sundberg's](https://github.com/TrevorSundberg/h264-mp4-encoder) npm library. Currently only works in Chrome due to OffscreenCanvas.
 
 > [[ Demo Link ]](https://mattdesl.github.io/mp4-wasm-encoder/)
 
 - Creates a H264-encoded MP4 video in the browser
 - Can be used for long videos (thousands of frames)
-- WASM dependency is ~200 KB before gzip (much smaller than ffmpeg.wasm)
+- The WASM+JS dependency is ~200 KB before gzip (much smaller than ffmpeg.wasm)
 - Uses WASM SIMD if enabled (Chrome only; first enable `#enable-webassembly-simd` in about:flags)
 - Uses OffscreenCanvas to speed up rendering in a web worker (Chrome only)
 
