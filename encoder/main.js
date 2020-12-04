@@ -34,7 +34,8 @@ const show = (data) => {
   video.style.width = `${size}px`;
   video.style.height = `${size / aspect}px`;
 
-  document.body.appendChild(video);
+  const container = document.querySelector('#video-container');
+  container.appendChild(video);
   video.src = url;
 
   const anchor = document.createElement("a");
@@ -42,7 +43,7 @@ const show = (data) => {
   anchor.id = "download";
   anchor.textContent = "Click here to download MP4 file...";
   anchor.download = "download.mp4";
-  document.body.appendChild(anchor);
+  container.appendChild(anchor);
 };
 
 const isOffscreenSupported = (() => {
