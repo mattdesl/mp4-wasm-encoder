@@ -6,7 +6,7 @@ Fast client-side MP4 encoding demo based on [Trevor Sundberg's](https://github.c
 
 - Creates a H264-encoded MP4 video in the browser
 - Can be used for long videos (thousands of frames)
-- WASM dependency is ~700KB before gzip (big, but way smaller than including ffmpeg.wasm)
+- WASM dependency is ~200 KB before gzip (much smaller than ffmpeg.wasm)
 - Uses WASM SIMD if enabled (Chrome only; first enable `#enable-webassembly-simd` in about:flags)
 - Uses OffscreenCanvas to speed up rendering in a web worker (Chrome only)
 
@@ -22,13 +22,14 @@ This is mostly based on Trevor Sundberg's work with [h264-mp4-encoder](https://g
 - Uses a true WASM file, and WASM SIMD where available
 - Sets Emscripten memory directly to avoid passing any array buffers to C/C++
 - A few additional tweaks and new flags added to my C/C++ fork
+- I'm also using an entirely different library to build the MP4 container – shrinking the final WASM+JS size from ~700KB to ~200KB. Compare to the pure-JS version of `h264-mp4-encoder` which is ~1.7MB.
 
 ## How it could be faster?
 
 It's still pretty slow compared to native, some ways it could be faster/cleaner:
 
 - Use a second worker (thread) to handle encoding, this might not speed things up much but at least will take a load off main UI thread
-- Ensure that WASM version of `minih264` library is indeed taking advantage of SIMD
+- Ensure that WASM version of `minih264` library is indeed taking advantage of SIMD (lots of NEON code that doesn't compile there)
 - Open to other ideas! Please create an issue if you think you see any ways to make it faster.
 
 ## How can it work on FireFox, mobile phones, etc?
