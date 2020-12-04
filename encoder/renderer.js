@@ -138,6 +138,7 @@ function pixelGrabber(context, opts = {}) {
   let sharedContext;
 
   return {
+    buffer,
     bufferSize,
     channels,
     read() {

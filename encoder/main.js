@@ -2,7 +2,7 @@ import { simd } from "https://unpkg.com/wasm-feature-detect?module";
 
 const settings = {
   duration: 5,
-  context: 'webgl',
+  context: "webgl",
   fps: 60,
   dimensions: [256, 256],
 };
@@ -39,8 +39,8 @@ const show = (data) => {
 
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.id = 'download';
-  anchor.textContent = 'Click here to download MP4 file...';
+  anchor.id = "download";
+  anchor.textContent = "Click here to download MP4 file...";
   anchor.download = "download.mp4";
   document.body.appendChild(anchor);
 };
@@ -179,7 +179,6 @@ async function createWorker(sketch) {
     const { fps, duration } = settings;
     totalFrames = Math.round(duration * fps);
 
-
     console.log("Dimensions: %d x %d", width, height);
     console.log("FPS:", fps);
     console.log("Total Frames:", totalFrames);
@@ -187,6 +186,8 @@ async function createWorker(sketch) {
     // Must be a multiple of 2.
     encoder.width = width;
     encoder.height = height;
+    encoder.sequential = true;
+    encoder.fragmentation = true;
     encoder.quantizationParameter = 10;
     encoder.speed = 10; // adjust to taste
     encoder.frameRate = fps;
@@ -195,7 +196,8 @@ async function createWorker(sketch) {
     encoder.initialize();
 
     if (convertYUV && yuvPointer) {
-      _yuv_buffer = encoder.create_yuv_buffer(encoder.width, encoder.height);
+      const yuvLen = (width * height * 3) / 2;
+      _yuv_buffer = encoder.create_buffer(yuvLen);
     }
 
     renderer.addEventListener("message", ({ data }) => {
@@ -249,7 +251,7 @@ async function createWorker(sketch) {
 
     show(buf);
     progressText.textContent = `Finished Encoding in ${time} milliseconds`;
-    if (convertYUV && yuvPointer) encoder.free_yuv_buffer(_yuv_buffer);
+    if (convertYUV && yuvPointer) encoder.free_buffer(_yuv_buffer);
     encoder.delete();
   }
 
