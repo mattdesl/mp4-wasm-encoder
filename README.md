@@ -1,5 +1,13 @@
 # mp4-wasm-encoder
 
+### :bulb: Update - Project Moved
+
+See the [mp4-h264](https://github.com/mattdesl/mp4-h264) module which wraps most of this demo up as a ES module.
+
+What follows below is early R&D / proof-of-concept.
+
+---
+
 Fast client-side MP4 encoding demo based on a fork of [Trevor Sundberg's](https://github.com/TrevorSundberg/h264-mp4-encoder) npm library. Currently only works in Chrome due to OffscreenCanvas.
 
 > [[ Demo Link ]](https://mattdesl.github.io/mp4-wasm-encoder/)
